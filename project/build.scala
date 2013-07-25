@@ -41,8 +41,8 @@ object Shared {
 
   val settings = Seq(
     organization := "com.novus",
-    scalaVersion := "2.10.1",
-    crossScalaVersions := Seq("2.9.2", "2.10.1"),
+    scalaVersion := "2.10.2",
+    crossScalaVersions := Seq("2.9.2", "2.10.1", "2.10.2"),
     scalacOptions := Seq("-deprecation", "-unchecked"),
     resolvers ++= Seq("Novus Nexus Public" at "https://nexus.novus.com:65443/nexus/content/groups/public/"),
     initialCommands := "import com.novus.unfinagled._",
