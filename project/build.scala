@@ -34,9 +34,7 @@ object Build extends sbt.Build {
   def project(id: String, base: File, settings: Seq[Project.Setting[_]] = Nil) =
     Project(id = id,
             base = base,
-            settings = Project.defaultSettings ++ Shared.settings ++ settings ++ Seq(
-              libraryDependencies ++= Shared.testDeps
-            ))
+            settings = Project.defaultSettings ++ Shared.settings ++ sbtrelease.ReleasePlugin.releaseSettings ++ settings)
 }
 
 object Shared {
