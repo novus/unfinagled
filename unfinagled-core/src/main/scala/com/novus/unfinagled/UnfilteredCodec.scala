@@ -20,7 +20,7 @@ import unfiltered.netty.{ RequestBinding, ReceivedMessage }
  */
 object UnfilteredCodec {
 
-  val handlerName = "unfilteredServerRequest"
+  val handlerName = "unfilteredRequestEncoder"
 
   def apply(
     _compressionLevel: Int = 0,

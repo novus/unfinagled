@@ -13,6 +13,7 @@ import unfiltered.netty.cycle.Plan.Intent
  */
 object UnfilteredService {
 
+  @deprecated("Do not use this. If needed, construct one.", "0.2.0")
   val nettyResponse: HttpResponseStatus => HttpResponse =
     new DefaultHttpResponse(HTTP_1_1, _)
 
