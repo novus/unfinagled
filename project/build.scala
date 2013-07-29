@@ -7,7 +7,7 @@ object Build extends sbt.Build {
 
   lazy val root =
     project(id = "unfinagled",
-            base = file(".")) aggregate(core, scalatest)
+            base = file(".")) aggregate(core, scalatest, server)
 
   lazy val core =
     project(id = "unfinagled-core",
@@ -29,7 +29,17 @@ object Build extends sbt.Build {
                 "com.twitter" %% "finagle-http" % "6.5.1",
                 "net.databinder" %% "unfiltered-scalatest" % "0.6.8"
               )
-            ))
+            )) dependsOn(server)
+
+  lazy val server =
+    project(id = "unfinagled-server",
+      base = file("unfinagled-server"),
+      settings = Seq(
+        libraryDependencies ++= Seq(
+          "com.twitter" %% "finagle-http" % "6.5.1",
+          "net.databinder" %% "unfiltered-util" % "0.6.8"
+        )
+      )) dependsOn(core)
             
   def project(id: String, base: File, settings: Seq[Project.Setting[_]] = Nil) =
     Project(id = id,
