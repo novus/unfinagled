@@ -2,7 +2,7 @@ package com.novus.unfinagled
 
 import org.scalatest.WordSpec
 import org.scalatest.matchers.ShouldMatchers
-import com.twitter.finagle.http.Http
+import com.twitter.finagle.http.{ Http => FHttp }
 import com.twitter.finagle.ServerCodecConfig
 import java.net.InetSocketAddress
 import scala.collection.JavaConversions._
@@ -11,7 +11,7 @@ class CodecSpec extends WordSpec with ShouldMatchers {
 
   val conf = ServerCodecConfig("serverConf", new InetSocketAddress(0))
   val ufPipeline = UnfilteredCodec().server(conf).pipelineFactory.getPipeline
-  val httpPipeline = Http().server(conf).pipelineFactory.getPipeline
+  val httpPipeline = FHttp().server(conf).pipelineFactory.getPipeline
 
   "An UnfilteredCodec's pipeline" should {
 

@@ -6,6 +6,11 @@ import com.twitter.util.Await
 import java.net.InetSocketAddress
 import org.jboss.netty.handler.codec.http.{ HttpResponse, HttpRequest }
 import unfiltered.util.RunnableServer
+import org.jboss.netty.channel.ServerChannelFactory
+import org.jboss.netty.channel.socket.nio.{ NioWorkerPool, NioServerSocketChannelFactory }
+import java.util.concurrent.Executors
+import com.twitter.concurrent.NamedPoolThreadFactory
+import com.twitter.finagle.netty3.Netty3Listener
 
 case class Http private (
   override val serviceName: String,
@@ -27,6 +32,18 @@ object Http {
 
   type FullyConfigured = FServerBuilder[HttpRequest, HttpResponse, ServerConfig.Yes, ServerConfig.Yes, ServerConfig.Yes]
 
+  // TODO cleanup / move / make saner
+  // Temporary hacky fix for https://github.com/novus/unfinagled/issues/1.
+  //   - replace the channel factory with one we can isolate; this allows us to reliably shut it down.
+  //   - forcibly shutdown Netty3Listener.channelFactory as part of destroy, otherwise the associated executor and
+  //     worker pool will carry on
+  def channelFactory: ServerChannelFactory = {
+    val e = Executors.newCachedThreadPool(
+      new NamedPoolThreadFactory("unfinagled/netty3", true /*daemon*/ ))
+    val wp = new NioWorkerPool(e, Runtime.getRuntime().availableProcessors() * 2)
+    new NioServerSocketChannelFactory(e, wp)
+  }
+
   def apply(serviceName: String = "Unfiltered", port: Int = 8080): Http =
     Http(serviceName, port, None, None)
 }
@@ -37,8 +54,12 @@ trait HttpServer extends RunnableServer { self =>
 
   @volatile private var server: Option[Server] = None
 
+  /* Each run will  */
+  private lazy val cf = Http.channelFactory
+
   private lazy val underlying =
     FServerBuilder()
+      .channelFactory(cf)
       .bindTo(new InetSocketAddress(port))
       .name(serviceName)
       .codec(UnfilteredCodec())
@@ -71,10 +92,14 @@ trait HttpServer extends RunnableServer { self =>
         _ <- svc.close() // TODO confirm if this is necessary
       } ()
     }
+
     destroy()
   }
 
   override def destroy(): ServerBuilder = {
+    // Make sure this is dead, otherwise CPU will go nuts (https://github.com/novus/unfinagled/issues/1)
+    Netty3Listener.channelFactory.shutdown()
+    cf.releaseExternalResources()
     HttpServer.this
   }
 

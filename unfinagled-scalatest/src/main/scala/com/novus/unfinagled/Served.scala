@@ -4,13 +4,18 @@ import org.scalatest.FeatureSpec
 import unfiltered.scalatest.Hosted
 import dispatch.classic.{ Handler, Http => DHttp }
 import unfiltered.netty.cycle.Plan.Intent
+import org.jboss.netty.channel.ServerChannelFactory
+import java.util.concurrent.Executors
+import com.twitter.concurrent.NamedPoolThreadFactory
+import org.jboss.netty.channel.socket.nio.{NioServerSocketChannelFactory, NioWorkerPool}
 
 trait Served extends FeatureSpec with Hosted {
 
   def intent: Intent
 
   def getServer =
-    Http("TestHttpServer@" + port, port).service(UnfilteredService(intent))
+    Http(java.util.UUID.randomUUID.toString + "@" + port, port)
+      .service(UnfilteredService(intent))
 
   val status: Handler.F[Int] = { case (c, _, _) => c }
 
@@ -29,5 +34,14 @@ trait Served extends FeatureSpec with Hosted {
     finally {
       server.stop()
     }
+  }
+}
+
+object F {
+  def channelFactory: ServerChannelFactory = {
+    val e = Executors.newCachedThreadPool(
+      new NamedPoolThreadFactory("finagle/netty3", true /*daemon*/ ))
+    val wp = new NioWorkerPool(e, Runtime.getRuntime().availableProcessors() * 2)
+    new NioServerSocketChannelFactory(e, wp)
   }
 }
