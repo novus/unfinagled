@@ -54,7 +54,6 @@ trait HttpServer extends RunnableServer { self =>
 
   @volatile private var server: Option[Server] = None
 
-  /* Each run will  */
   private lazy val cf = Http.channelFactory
 
   private lazy val underlying =
