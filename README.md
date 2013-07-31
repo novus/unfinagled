@@ -50,6 +50,11 @@ The server module provides conveniences for building and running intents as Fina
 Finagle's ``ServerBuilder`` directly, you have no need of this module. What you get from this module is a slightly more
 streamlined construction process, a familiar Unfiltered feel, and an implementation of Unfiltered's ``RunnableServer``.
 This is great for development within sbt as you can easily start and stop your server without killing the sbt session.
+Usage looks like this:
+
+    Http("myservice", 8080)
+      .service(UnfilteredService(intent))
+      .start()
 
 #### unfinagled-scalatest
 
