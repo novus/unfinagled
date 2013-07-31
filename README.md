@@ -23,26 +23,32 @@ and processing, so if you currently use this, nothing changes.
 
 Consider this intent:
 
-    object FooIntent {
-      def intent: unfiltered.netty.cycle.Plan.Intent = {
-        case GET(Path("/")) => ResponseString("Hi")
-        case GET(Path("/foobar")) => ResponseString("GOT foobar!")
-      }
-    }
+```scala
+object FooIntent {
+  def intent: unfiltered.netty.cycle.Plan.Intent = {
+    case GET(Path("/")) => ResponseString("Hi")
+    case GET(Path("/foobar")) => ResponseString("GOT foobar!")
+  }
+}
+```
 
 Unfinagled provides a function to transform such an intent into a Finagle service: ``UnfilteredService``. It looks like
 this:
 
-    val ufService = UnfilteredService(FooIntent.intent)
+```scala
+val ufService = UnfilteredService(FooIntent.intent)
+```
 
 With this in hand, we can now create a Finagle server using unfiltered intents as the request processors:
 
-    val server: Server =
-      ServerBuilder()
-        .bindTo(address)
-        .name("UnfilteredHttpServer")
-        .codec(UnfilteredCodec())
-        .build(ufService)
+```scala
+val server: Server =
+  ServerBuilder()
+    .bindTo(address)
+    .name("UnfilteredHttpServer")
+    .codec(UnfilteredCodec())
+    .build(ufService)
+```
 
 #### unfinagled-server
 
@@ -52,26 +58,30 @@ streamlined construction process, a familiar Unfiltered feel, and an implementat
 This is great for development within sbt as you can easily start and stop your server without killing the sbt session.
 Usage looks like this:
 
-    Http("myservice", 8080)
-      .service(UnfilteredService(intent))
-      .start()
+```scala
+Http("myservice", 8080)
+  .service(UnfilteredService(intent))
+  .start()
+```
 
 #### unfinagled-scalatest
 
 This is a module facilitating integration or black-box testing within ScalaTest. It implements Unfiltered's ``Hosted``
 trait so you can write tests for Unfinagled just like you would with Unfiltered on jetty or netty. An example:
 
-    class IntentSpec extends Served with GivenWhenThen with ShouldMatchers {
+```scala
+class IntentSpec extends Served with GivenWhenThen with ShouldMatchers {
 
-      def intent = {
-        case GET(Path("/foobar")) => ResponseString("baz")
-      }
+  def intent = {
+    case GET(Path("/foobar")) => ResponseString("baz")
+  }
 
-      feature("Unfiltered front end") {
-        scenario("GET foobar") {
-          http(host / "foobar" as_str) should be("baz")
-        }
-      }
+  feature("Unfiltered front end") {
+    scenario("GET foobar") {
+      http(host / "foobar" as_str) should be("baz")
     }
+  }
+}
+```
 
 You provide the intent and you're given a server for each test.
