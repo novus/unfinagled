@@ -3,8 +3,6 @@ import Keys._
 
 object Build extends sbt.Build {
 
-  def local(name: String) = LocalProject("unfinagled-" + name)
-
   lazy val root =
     project(id = "unfinagled",
             base = file(".")) aggregate(core, scalatest, server)
@@ -40,6 +38,8 @@ object Build extends sbt.Build {
           "net.databinder" %% "unfiltered-util" % "0.6.8"
         )
       )) dependsOn(core)
+
+  def local(name: String) = LocalProject("unfinagled-" + name)
             
   def project(id: String, base: File, settings: Seq[Project.Setting[_]] = Nil) =
     Project(id = id,
@@ -54,17 +54,31 @@ object Shared {
     scalaVersion := "2.10.2",
     crossScalaVersions := Seq("2.9.2", "2.10.1", "2.10.2"),
     scalacOptions := Seq("-deprecation", "-unchecked"),
-    resolvers ++= Seq("Novus Nexus Public" at "https://nexus.novus.com:65443/nexus/content/groups/public/"),
     initialCommands := "import com.novus.unfinagled._",
     shellPrompt := ShellPrompt.buildShellPrompt,
-    publishTo <<= (version) { version: String =>
-      val sfx =
-        if (version.trim.endsWith("SNAPSHOT")) "snapshots"
-        else "releases"
-      val nexus = "https://nexus.novus.com:65443/nexus/content/repositories/"
-      Some("Novus " + sfx at nexus + sfx + "/")
+    pomIncludeRepository := { _ => false },
+    licenses := Seq("The MIT License (MIT)" -> url("http://www.opensource.org/licenses/mit-license.php")),
+    homepage := Some(url("https://github.com/novus/unfinagled")),
+    pomExtra := (
+        <scm>
+          <url>git@github.com:novus/unfinagled.git</url>
+          <connection>scm:git:git@github.com:novus/unfinagled.git</connection>
+        </scm>
+        <developers>
+          <developer>
+            <id>chris</id>
+            <name>Chris Lewis</name>
+            <url>http://www.thegodcode.net/</url>
+          </developer>
+        </developers>),
+    publishTo <<= version { (v: String) =>
+      val nexus = "https://oss.sonatype.org/"
+      if (v.trim.endsWith("SNAPSHOT"))
+        Some("snapshots" at nexus + "content/repositories/snapshots")
+      else
+        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
     },
-    credentials += Credentials(Path.userHome / ".ivy2" / ".novus_nexus")
+    credentials += Credentials(Path.userHome / ".ivy2" / ".sonatype")
   ) ++ net.virtualvoid.sbt.graph.Plugin.graphSettings ++ Format.settings
   
 }
@@ -85,7 +99,7 @@ object ShellPrompt {
     (state: State) => {
       val currProject = Project.extract (state).currentProject.id
       "[%s](%s)$ ".format (
-        currProject, currBranch /*, BuildSettings.buildVersion*/
+        currProject, currBranch
       )
     }
   }
