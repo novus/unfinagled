@@ -50,6 +50,28 @@ val server: Server =
     .build(ufService)
 ```
 
+##### Futures support
+
+Intents that return Finagle or Scala Futures are also supported:
+
+```scala
+import com.twitter.util.Future
+object TFIntent {
+  def intent: com.novus.unfinagled.TwitterFuturePlan.Intent = {
+    case GET(Path("/")) => Future { ResponseString("Hello from the future") }
+  }
+}
+
+import scala.concurrent._
+object SCIntent {
+  implicit val executionContext = ExecutionContext.Implicits.global
+
+  def intent: com.novus.unfinagled.FuturePlan.Intent = {
+    case GET(Path("/")) => Future { ResponseString("Hello from the future") }
+  }
+}
+```
+
 #### unfinagled-server
 
 The server module provides conveniences for building and running intents as Finagle services. If you prefer to use
