@@ -1,10 +1,12 @@
 package com.novus.unfinagled
 
+import com.twitter.finagle.Service
+import dispatch.classic.{ Handler, Http => DHttp }
+import java.util.UUID.randomUUID
+import org.jboss.netty.handler.codec.http.{ HttpResponse, HttpRequest }
 import org.scalatest.FeatureSpec
 import unfiltered.scalatest.Hosted
-import dispatch.classic.{ Handler, Http => DHttp }
-import org.jboss.netty.handler.codec.http.{ HttpResponse, HttpRequest }
-import com.twitter.finagle.Service
+
 
 trait FinagleServed[T] extends FeatureSpec with Hosted {
 
@@ -13,7 +15,7 @@ trait FinagleServed[T] extends FeatureSpec with Hosted {
   def service: Service[HttpRequest, HttpResponse]
 
   def getServer =
-    Http(java.util.UUID.randomUUID.toString + "@" + port, port)
+    Http(randomUUID.toString + "@" + port, port)
       .service(service)
 
   val status: Handler.F[Int] = { case (c, _, _) => c }

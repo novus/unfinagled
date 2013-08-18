@@ -4,12 +4,11 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.ShouldMatchers
 import unfiltered.response._
 import unfiltered.request._
-import dispatch.classic.Handler
 import com.twitter.util.Future
 
 class TwitterFutureIntentSpec extends FinagleServed[TwitterFuturePlan.Intent] with GivenWhenThen with ShouldMatchers {
 
-  def service = UnfilteredService.twitterFuture(intent)
+  def service = UnfilteredService(intent)
 
   def intent = {
     case GET(Path("/ping")) => Future {

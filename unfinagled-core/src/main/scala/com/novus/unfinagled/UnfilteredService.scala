@@ -7,6 +7,7 @@ import org.jboss.netty.handler.codec.http.HttpVersion._
 import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 import unfiltered.response.{ HttpResponse => UHttpResponse, _ }
 import unfiltered.netty.ResponseBinding
+import scala.concurrent.ExecutionContext
 
 /** Functions for constructing finagle Services from unfiltered types.
  */
@@ -17,16 +18,15 @@ object UnfilteredService {
   val nettyResponse: HttpResponseStatus => HttpResponse =
     new DefaultHttpResponse(HTTP_1_1, _)
 
-  def apply(intent: unfiltered.netty.cycle.Plan.Intent, futurePool: FuturePool = FuturePool.immediatePool): HttpService =
-    cycle(intent)
-
+  /** Creates a Finagle wrapper service around a Twitter Future returning intent.
+   *
+   *  @param intent the intent to wrap
+   *  @return the Finagle service wrapper
+   */
   def apply(intent: TwitterFuturePlan.Intent): HttpService =
-    twitterFuture(intent)
+    new UnfilteredService(intent)
 
-  def apply(intent: FuturePlan.Intent)(implicit executionContext: scala.concurrent.ExecutionContext): HttpService =
-    scalaFuture(intent)
-
-  /** Creates a Finagle wrapper service around a Unfiltered synchronous / cycle intent.
+  /** Creates a Finagle wrapper service around an Unfiltered synchronous / cycle intent.
    *
    *  @param intent the intent to wrap
    *  @param futurePool the pool on which the intent will be applied.
@@ -34,34 +34,27 @@ object UnfilteredService {
    *                   can be executed on the current I/O worker thread.
    *  @return the Finagle service wrapper
    */
-  def cycle(intent: unfiltered.netty.cycle.Plan.Intent, futurePool: FuturePool = FuturePool.immediatePool): HttpService =
-    twitterFuture(intent.andThen(x => futurePool.apply(x)))
-
-  /** Creates a Finagle wrapper service around a Twitter Future returning intent.
-   *
-   *  @param intent the intent to wrap
-   *  @return the Finagle service wrapper
-   */
-  def twitterFuture(intent: TwitterFuturePlan.Intent): HttpService = new UnfilteredService(intent)
+  def apply(intent: unfiltered.netty.cycle.Plan.Intent, futurePool: FuturePool = FuturePool.immediatePool): HttpService =
+    apply(intent.andThen(x => futurePool.apply(x)))
 
   /** Creates a Finagle wrapper service around a Scala Future returning intent.
    *
    *  @param intent the intent to wrap
-   *  @param executionContext the execution context to handle future processing with
+   *  @param ec the execution context to handle future processing with
    *  @return the Finagle service wrapper
    */
-  def scalaFuture(intent: FuturePlan.Intent)(implicit executionContext: scala.concurrent.ExecutionContext): HttpService = {
-    // Convert the Scala future Intent into a Twitter Future one
-    val twResponse: TwitterFuturePlan.Intent = intent.andThen { scFuture =>
-      val twResult = Promise[ResponseFunction[HttpResponse]]()
-      scFuture.onComplete {
-        case scala.util.Success(resp) => twResult.setValue(resp)
-        case scala.util.Failure(t)    => twResult.setException(t)
+  def apply(intent: FuturePlan.Intent)(implicit ec: ExecutionContext): HttpService =
+    apply {
+      // Convert the Scala future Intent into a Twitter Future one
+      intent.andThen { scFuture =>
+        val twResult = Promise[ResponseFunction[HttpResponse]]()
+        scFuture.onComplete {
+          case scala.util.Success(resp) => twResult.setValue(resp)
+          case scala.util.Failure(t)    => twResult.setException(t)
+        }
+        twResult
       }
-      twResult
     }
-    twitterFuture(twResponse)
-  }
 
   private final def response(request: HttpRequest, status: HttpResponseStatus): HttpResponse =
     new DefaultHttpResponse(request.getProtocolVersion, status)

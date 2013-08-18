@@ -10,7 +10,7 @@ class ScalaFutureIntentSpec extends FinagleServed[FuturePlan.Intent] with GivenW
 
   implicit val executionContext = ExecutionContext.Implicits.global
 
-  def service = UnfilteredService.scalaFuture(intent)
+  def service = UnfilteredService(intent)
 
   def intent = {
     case GET(Path("/ping")) => Future {
