@@ -12,10 +12,12 @@ object Build extends sbt.Build {
             base = file("unfinagled-core"),
             settings = Seq(
               unmanagedClasspath in (local("core"), Test) <++= (fullClasspath in (local("scalatest"), Test)),
-              libraryDependencies ++= Seq(
-                "com.twitter" %% "finagle-http" % "6.5.1",
-                "net.databinder" %% "unfiltered-netty" % "0.6.8"
-              )
+              libraryDependencies <<= (scalaVersion) { sv =>
+                Seq(
+                  finagleDep(sv),
+                  "net.databinder" %% "unfiltered-netty" % "0.6.8"
+                )
+              }
             ))
 
   lazy val scalatest =
@@ -23,21 +25,31 @@ object Build extends sbt.Build {
             base = file("unfinagled-scalatest"),
             settings = Seq(
               unmanagedClasspath in (local("scalatest"), Compile) <++= (fullClasspath in (local("core"), Compile)),
-              libraryDependencies ++= Seq(
-                "com.twitter" %% "finagle-http" % "6.5.1",
-                "net.databinder" %% "unfiltered-scalatest" % "0.6.8"
-              )
+              libraryDependencies <<= (scalaVersion) { sv =>
+                Seq(
+                  finagleDep(sv),
+                  "net.databinder" %% "unfiltered-scalatest" % "0.6.8"
+                )
+              }
             )) dependsOn(server)
 
   lazy val server =
     project(id = "unfinagled-server",
       base = file("unfinagled-server"),
       settings = Seq(
-        libraryDependencies ++= Seq(
-          "com.twitter" %% "finagle-http" % "6.5.1",
-          "net.databinder" %% "unfiltered-util" % "0.6.8"
-        )
+        libraryDependencies <<= (scalaVersion) { sv =>
+          Seq(
+            finagleDep(sv),
+            "net.databinder" %% "unfiltered-util" % "0.6.8"
+          )
+        }
       )) dependsOn(core)
+
+  def finagleDep(scalaVersion: String) =
+    if(scalaVersion startsWith "2.9.")
+      "com.twitter" % "finagle-http_2.9.2" % "6.5.1"
+    else
+      "com.twitter" %% "finagle-http" % "6.5.1"
 
   def local(name: String) = LocalProject("unfinagled-" + name)
             
@@ -52,7 +64,7 @@ object Shared {
   val settings = Seq(
     organization := "com.novus",
     scalaVersion := "2.10.2",
-    crossScalaVersions := Seq("2.9.2", "2.10.1", "2.10.2"),
+    crossScalaVersions := Seq("2.9.3", "2.10.1", "2.10.2"),
     scalacOptions := Seq("-deprecation", "-unchecked"),
     initialCommands := "import com.novus.unfinagled._",
     shellPrompt := ShellPrompt.buildShellPrompt,

@@ -7,7 +7,6 @@ import org.jboss.netty.handler.codec.http.{ HttpResponse, HttpRequest }
 import org.scalatest.FeatureSpec
 import unfiltered.scalatest.Hosted
 
-
 trait FinagleServed[T] extends FeatureSpec with Hosted {
 
   def intent: T
