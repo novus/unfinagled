@@ -6,7 +6,7 @@ import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.handler.codec.http.HttpVersion._
 import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 import unfiltered.response.{ HttpResponse => UHttpResponse, _ }
-import unfiltered.netty.ResponseBinding
+import unfiltered.netty.{ ReceivedMessage, ResponseBinding }
 import scala.concurrent.ExecutionContext
 
 /** Functions for constructing finagle Services from unfiltered types.
@@ -34,8 +34,12 @@ object UnfilteredService {
    *                   can be executed on the current I/O worker thread.
    *  @return the Finagle service wrapper
    */
-  def apply(intent: unfiltered.netty.cycle.Plan.Intent, futurePool: FuturePool = FuturePool.immediatePool): HttpService =
-    apply(intent.andThen(x => futurePool.apply(x)))
+  def apply(intent: unfiltered.netty.cycle.Plan.Intent, futurePool: FuturePool = FuturePool.immediatePool): HttpService = {
+    val futureIntent: TwitterFuturePlan.Intent = {
+      case x if intent.isDefinedAt(x) => futurePool(intent.apply(x))
+    }
+    apply(futureIntent)
+  }
 
   /** Creates a Finagle wrapper service around a Scala Future returning intent.
    *
@@ -77,14 +81,11 @@ class UnfilteredService(intent: TwitterFuturePlan.Intent) extends Service[HttpRe
   def apply(request: HttpRequest): Future[HttpResponse] = request match {
     case uf: RequestAdapter =>
       val responder: Future[ResponseFunction[HttpResponse]] =
-        intent.lift(uf.binding).getOrElse(Future(NotFound))
-          .map(_ ~> keepAlive(request))
+        intent.andThen(_.map(_ ~> keepAlive(request))).applyOrElse(uf.binding, notFound)
 
       responder.map(_.apply(new ResponseBinding(response(request, OK))).underlying)
-
-    case _ =>
-      // TODO should probably log this as it indicates a problem with handler ordering in the pipeline.
-      Future(response(request, INTERNAL_SERVER_ERROR))
   }
 
+  private def notFound(req: unfiltered.request.HttpRequest[ReceivedMessage]): com.twitter.util.Future[ResponseFunction[HttpResponse]] = Future(NotFound)
 }
+

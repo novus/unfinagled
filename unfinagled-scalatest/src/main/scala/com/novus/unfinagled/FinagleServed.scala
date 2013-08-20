@@ -15,7 +15,7 @@ trait FinagleServed[T] extends FeatureSpec with Hosted {
 
   def getServer =
     Http(randomUUID.toString + "@" + port, port)
-      .service(service)
+      .service(ExceptionFilter andThen service)
 
   val status: Handler.F[Int] = { case (c, _, _) => c }
 
