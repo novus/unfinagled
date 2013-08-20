@@ -16,7 +16,7 @@ class TwitterFutureIntentSpec extends FinagleServed[TwitterFuturePlan.Intent] wi
       ResponseString(http(host / "ping-req" as_str))
     }
     case GET(Path("/ping-req")) => Future(ResponseString("pong"))
-    case GET(Path("/error"))    => Future.exception(new RuntimeException("foo"))
+    case GET(Path("/error"))    => throw new RuntimeException("foo"); Future.exception(new RuntimeException("foo"))
   }
 
   feature("Twitter futures front-end") {

@@ -8,7 +8,6 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus._
 import unfiltered.response.{ HttpResponse => UHttpResponse, _ }
 import unfiltered.netty.{ ReceivedMessage, ResponseBinding }
 import scala.concurrent.ExecutionContext
-import unfiltered.request
 
 /** Functions for constructing finagle Services from unfiltered types.
  */
@@ -81,21 +80,12 @@ class UnfilteredService(intent: TwitterFuturePlan.Intent) extends Service[HttpRe
 
   def apply(request: HttpRequest): Future[HttpResponse] = request match {
     case uf: RequestAdapter =>
-      val responder =
-        intent.andThen(_.map(_ ~> keepAlive(request)))
+      val responder: Future[ResponseFunction[HttpResponse]] =
+        intent.andThen(_.map(_ ~> keepAlive(request))).applyOrElse(uf.binding, notFound)
 
-      val res = responder.applyOrElse(uf.binding, notFound).map(_.apply(new ResponseBinding(response(request, OK))).underlying)
-      res.rescue {
-        case e: Exception => Future(response(request, INTERNAL_SERVER_ERROR))
-      }
-
-    case _ =>
-      // TODO should probably log this as it indicates a problem with handler ordering in the pipeline.
-      Future(response(request, INTERNAL_SERVER_ERROR))
+      responder.map(_.apply(new ResponseBinding(response(request, OK))).underlying)
   }
 
-  import org.jboss.netty.handler.codec.http.{ HttpResponse => NHttpResponse }
-  import unfiltered.request.HttpRequest
-  private def notFound(req: HttpRequest[ReceivedMessage]): com.twitter.util.Future[ResponseFunction[NHttpResponse]] = Future(NotFound)
-
+  private def notFound(req: unfiltered.request.HttpRequest[ReceivedMessage]): com.twitter.util.Future[ResponseFunction[HttpResponse]] = Future(NotFound)
 }
+
