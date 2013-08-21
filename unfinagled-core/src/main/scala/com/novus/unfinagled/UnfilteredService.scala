@@ -80,8 +80,11 @@ class UnfilteredService(intent: TwitterFuturePlan.Intent) extends Service[HttpRe
 
   def apply(request: HttpRequest): Future[HttpResponse] = request match {
     case uf: RequestAdapter =>
-      val responder: Future[ResponseFunction[HttpResponse]] =
-        intent.andThen(_.map(_ ~> keepAlive(request))).applyOrElse(uf.binding, notFound)
+      val responder: Future[ResponseFunction[HttpResponse]] = {
+        val pf = intent.andThen(_.map(_ ~> keepAlive(request)))
+        if (pf.isDefinedAt(uf.binding)) pf(uf.binding)
+        else notFound(uf.binding)
+      }
 
       responder.map(_.apply(new ResponseBinding(response(request, OK))).underlying)
   }
