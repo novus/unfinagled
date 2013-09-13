@@ -71,6 +71,8 @@ object Shared {
     pomIncludeRepository := { _ => false },
     licenses := Seq("The MIT License (MIT)" -> url("http://www.opensource.org/licenses/mit-license.php")),
     homepage := Some(url("https://github.com/novus/unfinagled")),
+    publishMavenStyle := true,
+    publishArtifact in Test := false,
     pomExtra := (
         <scm>
           <url>git@github.com:novus/unfinagled.git</url>
