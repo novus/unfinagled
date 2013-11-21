@@ -47,9 +47,9 @@ object Build extends sbt.Build {
 
   def finagleDep(scalaVersion: String) =
     if(scalaVersion startsWith "2.9.")
-      "com.twitter" % "finagle-http_2.9.2" % "6.5.1"
+      "com.twitter" % "finagle-http_2.9.2" % "6.8.1"
     else
-      "com.twitter" %% "finagle-http" % "6.5.1"
+      "com.twitter" %% "finagle-http" % "6.8.1"
 
   def local(name: String) = LocalProject("unfinagled-" + name)
             
